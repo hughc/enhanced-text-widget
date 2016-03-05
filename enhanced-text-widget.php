@@ -22,6 +22,18 @@ class EnhancedTextWidget extends WP_Widget {
         parent::__construct('EnhancedTextWidget', __('Enhanced Text', 'enhancedtext'), $widget_ops, $control_ops);
         load_plugin_textdomain('enhancedtext', false, basename( dirname( __FILE__ ) ) . '/languages' );
     }
+    /* alt str_replace, first only
+    after http://stackoverflow.com/questions/1252693/using-str-replace-so-that-it-only-acts-on-the-first-match
+     */
+
+    function str_replace_first($needle, $replace, $haystack) {
+        $pos = strpos($haystack, $needle);
+        if ($pos !== false) {
+            $haystack = substr_replace($haystack, $replace, $pos, strlen($needle));
+        }
+        return $haystack;
+    }
+
 
     /**
      * Setup the widget output
@@ -37,6 +49,7 @@ class EnhancedTextWidget extends WP_Widget {
         $title = apply_filters('widget_title', empty($instance['title']) ? '' : $instance['title'], $instance);
         $titleUrl = empty($instance['titleUrl']) ? '' : $instance['titleUrl'];
         $cssClass = empty($instance['cssClass']) ? '' : $instance['cssClass'];
+        $applyToOuter = !empty($instance['applyToOuter']) ? true : false;
         $text = apply_filters('widget_enhanced_text', $instance['text'], $instance);
         $hideTitle = !empty($instance['hideTitle']) ? true : false;
         $hideEmpty = !empty($instance['hideEmpty']) ? true : false;
@@ -46,9 +59,17 @@ class EnhancedTextWidget extends WP_Widget {
 
         if ( $cssClass ) {
             if( strpos($before_widget, 'class') === false ) {
-                $before_widget = str_replace('>', 'class="'. $cssClass . '"', $before_widget);
+                if ($applyToOuter) {
+                    $before_widget = $this->str_replace_first('>', 'class="'. $cssClass . '"', $before_widget);
+                } else {
+                    $before_widget = str_replace('>', 'class="'. $cssClass . '"', $before_widget);
+                }
             } else {
-                $before_widget = str_replace('class="', 'class="'. $cssClass . ' ', $before_widget);
+                if ($applyToOuter) {
+                    $before_widget = $this->str_replace_first('class="', 'class="'. $cssClass . ' ', $before_widget);
+                } else {
+                    $before_widget = str_replace('class="', 'class="'. $cssClass . ' ', $before_widget);
+                }
             }
         }
 
@@ -92,6 +113,7 @@ class EnhancedTextWidget extends WP_Widget {
             $instance['text'] = wp_filter_post_kses($new_instance['text']);
         $instance['titleUrl'] = strip_tags($new_instance['titleUrl']);
         $instance['cssClass'] = strip_tags($new_instance['cssClass']);
+        $instance['applyToOuter'] = isset($new_instance['applyToOuter']);
         $instance['hideTitle'] = isset($new_instance['hideTitle']);
         $instance['hideEmpty'] = isset($new_instance['hideEmpty']);
         $instance['newWindow'] = isset($new_instance['newWindow']);
@@ -143,6 +165,11 @@ class EnhancedTextWidget extends WP_Widget {
             <label for="<?php echo $this->get_field_id('cssClass'); ?>"><?php _e('CSS Classes', 'enhancedtext'); ?>:</label>
             <input class="widefat" id="<?php echo $this->get_field_id('cssClass'); ?>" name="<?php echo $this->get_field_name('cssClass'); ?>" type="text" value="<?php echo $cssClass; ?>" />
         </p>
+
+        <p>
+            <input id="<?php echo $this->get_field_id('applyToOuter'); ?>" name="<?php echo $this->get_field_name('applyToOuter'); ?>" type="checkbox" <?php checked(isset($instance['applyToOuter']) ? $instance['applyToOuter'] : 0); ?> />&nbsp;<label for="<?php echo $this->get_field_id('applyToOuter'); ?>"><?php _e('Apply to outer element only', 'enhancedtext'); ?></label>
+        </p>
+
 
         <p>
             <label for="<?php echo $this->get_field_id('text'); ?>"><?php _e('Content', 'enhancedtext'); ?>:</label>
